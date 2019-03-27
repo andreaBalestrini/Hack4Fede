@@ -5,7 +5,7 @@
 #include <SoftwareSerial.h>
 
 /*Costanti*/
-#define MAXINPUTTIME 300
+#define MAXINPUTTIME 300 //ciao
 #define ATTESA 2000
 
 SoftwareSerial BTserial(0, 1); // RX | TX
