@@ -86,8 +86,6 @@ int noteDurationsWin[] = {4, 8, 8, 4,4,4,4,4 };
 int noteDurationsFail[] = {4, 16, 4, 16, 4,16,2,4};
 //////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////
-
 /*Dichirazione array contenente la lettera ed il corrispettivo in morse*/
 const char alphabet[26][6] {
   { 'A', DOT, DASH, CLEAR, CLEAR, CLEAR},
