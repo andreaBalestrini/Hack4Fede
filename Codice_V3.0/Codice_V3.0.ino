@@ -8,13 +8,26 @@
 #define MAXINPUTTIME 300
 #define ATTESA 2000
 
-//// PROTOTIPI FUNZIONI ////
+/*Strutture*/
+enum State{ // Stato del bottone
+  UP = 0,
+  DOWN = 1
+}state;
+
+/*Prototipi funzioni*/
 void checkword(char g);
 void clearlcdline(int line);
+void saluto(int flag);
+void readDashDot(State LineState, State DotState);
+char readCharacter();
 
+/*Inizializzazone delle librerie*/
 SoftwareSerial BTserial(0, 1); // RX | TX
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+
 int LENGLCD = 0;
-int counter = 0; // counter used for the letter position
+int counter = 0; // contatore utilizzato per la posizione della lettera
 int cnt = 0; // sets the LCD screen and dot/line sign
 int flag = 0; // usato per la funzione di saluto iniziale
 
@@ -35,6 +48,7 @@ bool gamemode = false;
 char gamechar;
 int life = 0;
 
+/*Definizione bit disegni*/
 byte heart[8] = {
   B00000,
   B00000,
@@ -79,6 +93,7 @@ byte clear[8] = {
   B00000
 };
 
+/*Array toni musichette*/
 int melodyWin[] = {462, 396, 396, 420, 396, 0, 447, 462};
 int melodyFail[] = {494, 0, 480, 0, 461, 0, 600, 0};
 
@@ -88,7 +103,7 @@ int noteDurationsFail[] = {4, 16, 4, 16, 4, 16, 2, 4};
 //////////////////////////////////////////////////////////////////////
 
 /*Dichirazione array contenente la lettera ed il corrispettivo in morse*/
-const char alphabet[26][6] {
+const char alphabet[26][6]{
   { 'A', DOT, DASH, CLEAR, CLEAR, CLEAR},
   { 'B', DASH, DOT, DOT, DOT, CLEAR},
   { 'C', DASH, DOT, DASH, DOT, CLEAR},
@@ -116,25 +131,15 @@ const char alphabet[26][6] {
   { 'Y', DASH, DOT, DASH, DASH, CLEAR},
   { 'Z', DASH, DASH, DOT, DOT, CLEAR}
 };
-//////////////////////////////////////////////////////////////////////
 
-// current state of the button
-enum State {
-  UP = 0,
-  DOWN = 1
-} state;
 
 bool isReadingChar = false, nextRead = true;
 
-// dash-dot-sequence of the current character
-char character[5];
+char character[5]; // dash-dot-sequence of the current character
 
-// index of the next dot/dash in the current character
-int characterIndex;
+int characterIndex; // index of the next dot/dash in the current character
 
-/////////////////////////////////////////////////////////////////////
 // pin to which the button is connected
-
 int buttonDot = 9;
 int buttonLine = 8;
 int buttonSpace = 7;
@@ -143,10 +148,9 @@ int buttonCanc = 10;
 // pin to which the buzzer is connected
 int buzzerPin = A4;
 
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-//////////////////////////////////////////////////////////////////////
 
-void setup() {
+//--------SETUP-----//
+void setup(){
   Serial.begin(9600);
   BTserial.begin(9600);
 
@@ -165,11 +169,8 @@ void setup() {
   randomSeed(analogRead(0));
 }
 
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-
-//// VOID LOOP ////
-void loop() {
+//--------LOOP-----//
+void loop(){
   saluto(flag);
   flag = 1;
 
@@ -180,20 +181,19 @@ void loop() {
   State EndCharState = digitalRead(buttonEndChar) ? UP : DOWN;
 
   // if the button is pressed, play a tone
-  if (DotState == DOWN && nextRead) {
+  if(DotState == DOWN && nextRead){
     tone(buzzerPin, 3000, 200);
   }
-  if (LineState == DOWN && nextRead) {
+  if(LineState == DOWN && nextRead){
     tone(buzzerPin, 2900, 200);
   }
 
-  if (DotState == DOWN || LineState == DOWN) // leggo i punti e linee
-  {
+  if(DotState == DOWN || LineState == DOWN){ // leggo i punti e linee
     lastPress = millis();
     readDashDot(LineState, DotState);
   }
 
-  else if (EndCharState == DOWN && oneClick && (millis() - lastPress) > MAXINPUTTIME) {
+  else if(EndCharState == DOWN && oneClick && (millis() - lastPress) > MAXINPUTTIME){
     lastPress = millis();
     oneClick = false;
     if (count++ == 0) {
@@ -201,11 +201,11 @@ void loop() {
       duration = millis() + ATTESA;
     }
     lcd.setCursor(0, 3);
-    if (count == 1) {
+    if(count == 1){
       tone(buzzerPin, 200, 200);
       lcd.print("Un click");
     }
-    else if (count == 2) {
+    else if (count == 2){
       tone(buzzerPin, 1200, 200);
       lcd.print("Doppio click");
     }
@@ -214,7 +214,7 @@ void loop() {
     oneClick = true;
   }
 
-  if (count > 0 && millis() >= duration) {
+  if(count > 0 && millis() >= duration){
     if (count == 1) { //fine carattere
       nextRead = true;
       myReadChar();
@@ -290,12 +290,10 @@ void loop() {
     nextRead = true;
 }
 
-//////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////
+// -----FUNZIONI----- //
 
 //// FUNZIONE SALUTO INIZIALE ////
-void saluto(int flag) {
+void saluto(int flag){
   if (flag == 0) {
     lcd.setCursor(0, 0);
     lcd.print("CIAO");
@@ -310,63 +308,60 @@ void saluto(int flag) {
     lcd.print("MODALITA' SCRITTURA");
     delay(1000);
     clearlcdline(0);
-
   }
 }
 
 ///////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////
 
 //// CANCELLA LA LINEA DELLO SCHERMO CHE E' STATA PASSATA ALLA FUNZIONE ////
 
-void clearlcdline(int line) {
+void clearlcdline(int line){
   lcd.setCursor(0, line);
   lcd.print("                    ");
 }
 
 ///////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////
 
 //// AZZERA LA SEQUENZA DI CARATTERI PUNTO-LINEA ////
 
-void clearCharacter() {
+void clearCharacter(){
   characterIndex = 0;
   for (int i = 0; i < 5; ++i) {
     character[i] = CLEAR;
   }
 }
 /////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
 
 //// LEGGE SE SI TRATTA DI PUNTO O LINEA ////
-void readDashDot(State LineState, State DotState) {
-  if (!nextRead || characterIndex >= 5)
-    return;
-  isReadingChar = true;
-  nextRead = false;
-  if (LineState == DOWN) {
-    character[characterIndex] = DASH;
-    Serial.println("LINEA");
-    clearlcdline(1);
-    lcd.setCursor(0, 1);
-    lcd.print("LINEA");
-
-  } else if (DotState == DOWN) {
-    character[characterIndex] = DOT;
-    Serial.println("PUNTO");
-    clearlcdline(1);
-    lcd.setCursor(0, 1);
-    lcd.print("PUNTO");
+void readDashDot(State LineState, State DotState){
+  if (!nextRead || characterIndex >= 5){}
+  else{
+    isReadingChar = true;
+    nextRead = false;
+    if (LineState == DOWN) {
+      character[characterIndex] = DASH;
+      Serial.println("LINEA");
+      clearlcdline(1);
+      lcd.setCursor(0, 1);
+      lcd.print("LINEA");
+  
+    } else if (DotState == DOWN) {
+      character[characterIndex] = DOT;
+      Serial.println("PUNTO");
+      clearlcdline(1);
+      lcd.setCursor(0, 1);
+      lcd.print("PUNTO");
+    }
+  
+    lcd.setCursor(cnt, 2);
+    lcd.write(character[characterIndex++]);
+    cnt++;
   }
-
-  lcd.setCursor(cnt, 2);
-  lcd.write(character[characterIndex++]);
-  cnt++;
 }
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 //// TRASFORMA L'INPUT DI PUNTI E LINEE IN TESTO ////
-char readCharacter() {
+char readCharacter(){
   bool found;
   for (int i = 0; i < 26; ++i) {
     found = true;
@@ -381,7 +376,6 @@ char readCharacter() {
   }
   return 0;
 }
-//////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 //// ACQUISISCE LA LETTERA ED EFFETTUA UN CONTROLLO SULLA SUA VALIDITA' ////
@@ -412,8 +406,7 @@ void myReadChar() {
   isReadingChar = false;
   clearCharacter();
 }
-////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////
+
 
 ///////////////////// FUNZIONI MOD GIOCO //////////////////////
 
