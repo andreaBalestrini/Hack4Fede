@@ -32,27 +32,47 @@ char readCharacter();
 SoftwareSerial BTserial(0, 1); // RX | TX
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
-int LENGLCD = 0;
-int counter = 0; // contatore utilizzato per la posizione della lettera
-int cnt = 0; // sets the LCD screen and dot/line sign
-int flag = 0; // usato per la funzione di saluto iniziale
+/*Pinout*/
+int buttonDot = 9;
+int buttonLine = 8;
+int buttonSpace = 7;
+int buttonEndChar = 6;
+int buttonCanc = 10;
+int buzzerPin = A4;
 
+/*Dichirazione array contenente la lettera ed il corrispettivo in morse*/
 const char CLEAR = 0;
 const char DOT = 1;
 const char DASH = 2;
-char string_to_send[20];
 
-/////////////////////////////////////////////////////////////////////
-//Doppio click del tasto fine carattere/cancella
-int count = 0;
-unsigned long duration = 0, lastPress = 0;
-bool oneClick = true;
-///////////////////////////////////////////////////////////////////////
-
-//variabili sezione gioco
-bool gamemode = false;
-char gamechar;
-int life = 0;
+const char alphabet[26][6]{
+  { 'A', DOT, DASH, CLEAR, CLEAR, CLEAR},
+  { 'B', DASH, DOT, DOT, DOT, CLEAR},
+  { 'C', DASH, DOT, DASH, DOT, CLEAR},
+  { 'D', DASH, DOT, DOT, CLEAR, CLEAR},
+  { 'E', DOT, CLEAR, CLEAR, CLEAR, CLEAR},
+  { 'F', DOT, DOT, DASH, DOT, CLEAR},
+  { 'G', DASH, DASH, DOT, CLEAR, CLEAR},
+  { 'H', DOT, DOT, DOT, DOT, CLEAR},
+  { 'I', DOT, DOT, CLEAR, CLEAR, CLEAR},
+  { 'J', DOT, DASH, DASH, DASH, CLEAR},
+  { 'K', DASH, DOT, DASH, CLEAR, CLEAR},
+  { 'L', DOT, DASH, DOT, DOT, CLEAR},
+  { 'M', DASH, DASH, CLEAR, CLEAR, CLEAR},
+  { 'N', DASH, DOT, CLEAR, CLEAR, CLEAR},
+  { 'O', DASH, DASH, DASH, CLEAR, CLEAR},
+  { 'P', DOT, DASH, DASH, DOT, CLEAR},
+  { 'Q', DASH, DASH, DOT, DASH, CLEAR},
+  { 'R', DOT, DASH, DOT, CLEAR, CLEAR},
+  { 'S', DOT, DOT, DOT, CLEAR, CLEAR},
+  { 'T', DASH, CLEAR, CLEAR, CLEAR, CLEAR},
+  { 'U', DOT, DOT, DASH, CLEAR, CLEAR},
+  { 'V', DOT, DOT, DOT, DASH, CLEAR},
+  { 'W', DOT, DASH, DASH, CLEAR, CLEAR},
+  { 'X', DASH, DOT, DOT, DASH, CLEAR},
+  { 'Y', DASH, DOT, DASH, DASH, CLEAR},
+  { 'Z', DASH, DASH, DOT, DOT, CLEAR}
+};
 
 /*Definizione bit disegni*/
 byte heart[8] = {
@@ -99,58 +119,39 @@ byte clear[8] = {
   B00000
 };
 
-/*Array toni musichette*/
+/*Array toni e musichette*/
 int melodyWin[] = {462, 396, 396, 420, 396, 0, 447, 462};
 int melodyFail[] = {494, 0, 480, 0, 461, 0, 600, 0};
 
-// note durations: 4 = quarter note, 8 = eighth note, etc.:
+// durata note: 4 = quarter note, 8 = eighth note, etc.:
 int noteDurationsWin[] = {4, 8, 8, 4, 4, 4, 4, 4 };
 int noteDurationsFail[] = {4, 16, 4, 16, 4, 16, 2, 4};
 
-/*Dichirazione array contenente la lettera ed il corrispettivo in morse*/
-const char alphabet[26][6]{
-  { 'A', DOT, DASH, CLEAR, CLEAR, CLEAR},
-  { 'B', DASH, DOT, DOT, DOT, CLEAR},
-  { 'C', DASH, DOT, DASH, DOT, CLEAR},
-  { 'D', DASH, DOT, DOT, CLEAR, CLEAR},
-  { 'E', DOT, CLEAR, CLEAR, CLEAR, CLEAR},
-  { 'F', DOT, DOT, DASH, DOT, CLEAR},
-  { 'G', DASH, DASH, DOT, CLEAR, CLEAR},
-  { 'H', DOT, DOT, DOT, DOT, CLEAR},
-  { 'I', DOT, DOT, CLEAR, CLEAR, CLEAR},
-  { 'J', DOT, DASH, DASH, DASH, CLEAR},
-  { 'K', DASH, DOT, DASH, CLEAR, CLEAR},
-  { 'L', DOT, DASH, DOT, DOT, CLEAR},
-  { 'M', DASH, DASH, CLEAR, CLEAR, CLEAR},
-  { 'N', DASH, DOT, CLEAR, CLEAR, CLEAR},
-  { 'O', DASH, DASH, DASH, CLEAR, CLEAR},
-  { 'P', DOT, DASH, DASH, DOT, CLEAR},
-  { 'Q', DASH, DASH, DOT, DASH, CLEAR},
-  { 'R', DOT, DASH, DOT, CLEAR, CLEAR},
-  { 'S', DOT, DOT, DOT, CLEAR, CLEAR},
-  { 'T', DASH, CLEAR, CLEAR, CLEAR, CLEAR},
-  { 'U', DOT, DOT, DASH, CLEAR, CLEAR},
-  { 'V', DOT, DOT, DOT, DASH, CLEAR},
-  { 'W', DOT, DASH, DASH, CLEAR, CLEAR},
-  { 'X', DASH, DOT, DOT, DASH, CLEAR},
-  { 'Y', DASH, DOT, DASH, DASH, CLEAR},
-  { 'Z', DASH, DASH, DOT, DOT, CLEAR}
-};
+/*Variabili*/
+int LENGLCD = 0;
+int counter = 0; // contatore utilizzato per la posizione della lettera
+int cnt = 0; // sets the LCD screen and dot/line sign
+int flag = 0; // usato per la funzione di saluto iniziale
+
+char string_to_send[20];
+
+/////////////////////////////////////////////////////////////////////
+//Doppio click del tasto fine carattere/cancella
+int count = 0;
+unsigned long duration = 0, lastPress = 0;
+bool oneClick = true;
+///////////////////////////////////////////////////////////////////////
+
+//variabili sezione gioco
+bool gamemode = false;
+char gamechar;
+int life = 0;
 
 bool isReadingChar = false, nextRead = true;
 
 char character[5]; // dash-dot-sequence of the current character
 
 int characterIndex; // index of the next dot/dash in the current character
-
-// pin to which the button is connected
-int buttonDot = 9;
-int buttonLine = 8;
-int buttonSpace = 7;
-int buttonEndChar = 6;
-int buttonCanc = 10;
-// pin to which the buzzer is connected
-int buzzerPin = A4;
 
 
 // --------SETUP----- //
