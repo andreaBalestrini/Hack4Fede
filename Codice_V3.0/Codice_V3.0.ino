@@ -1,5 +1,6 @@
 /*ARDUINO NANO OLD BOOT*/
 
+// -----DICHIARAZIONI ED INIZIALIZZAZIONI----- //
 /*Librerie*/
 #include <LiquidCrystal.h>
 #include <SoftwareSerial.h>
@@ -24,7 +25,6 @@ char readCharacter();
 /*Inizializzazone delle librerie*/
 SoftwareSerial BTserial(0, 1); // RX | TX
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-
 
 int LENGLCD = 0;
 int counter = 0; // contatore utilizzato per la posizione della lettera
@@ -100,7 +100,6 @@ int melodyFail[] = {494, 0, 480, 0, 461, 0, 600, 0};
 // note durations: 4 = quarter note, 8 = eighth note, etc.:
 int noteDurationsWin[] = {4, 8, 8, 4, 4, 4, 4, 4 };
 int noteDurationsFail[] = {4, 16, 4, 16, 4, 16, 2, 4};
-//////////////////////////////////////////////////////////////////////
 
 /*Dichirazione array contenente la lettera ed il corrispettivo in morse*/
 const char alphabet[26][6]{
@@ -132,7 +131,6 @@ const char alphabet[26][6]{
   { 'Z', DASH, DASH, DOT, DOT, CLEAR}
 };
 
-
 bool isReadingChar = false, nextRead = true;
 
 char character[5]; // dash-dot-sequence of the current character
@@ -149,7 +147,7 @@ int buttonCanc = 10;
 int buzzerPin = A4;
 
 
-//--------SETUP-----//
+// --------SETUP----- //
 void setup(){
   Serial.begin(9600);
   BTserial.begin(9600);
@@ -169,7 +167,7 @@ void setup(){
   randomSeed(analogRead(0));
 }
 
-//--------LOOP-----//
+// --------LOOP----- //
 void loop(){
   saluto(flag);
   flag = 1;
@@ -292,7 +290,7 @@ void loop(){
 
 // -----FUNZIONI----- //
 
-//// FUNZIONE SALUTO INIZIALE ////
+/*Funzione saluto iniziale*/
 void saluto(int flag){
   if (flag == 0) {
     lcd.setCursor(0, 0);
@@ -311,28 +309,21 @@ void saluto(int flag){
   }
 }
 
-///////////////////////////////////////////////////////////////////////
-
-//// CANCELLA LA LINEA DELLO SCHERMO CHE E' STATA PASSATA ALLA FUNZIONE ////
-
+/*Cancella la linea di schermo passata dal parametro*/
 void clearlcdline(int line){
   lcd.setCursor(0, line);
   lcd.print("                    ");
 }
 
-///////////////////////////////////////////////////////////////////////
-
-//// AZZERA LA SEQUENZA DI CARATTERI PUNTO-LINEA ////
-
+/*Azzera la sequenza di caratteri punto-linea*/
 void clearCharacter(){
   characterIndex = 0;
   for (int i = 0; i < 5; ++i) {
     character[i] = CLEAR;
   }
 }
-/////////////////////////////////////////////////////////////////////////
 
-//// LEGGE SE SI TRATTA DI PUNTO O LINEA ////
+/*Legge e stampa su lcd il punto o la linea*/
 void readDashDot(State LineState, State DotState){
   if (!nextRead || characterIndex >= 5){}
   else{
@@ -358,9 +349,8 @@ void readDashDot(State LineState, State DotState){
     cnt++;
   }
 }
-//////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
-//// TRASFORMA L'INPUT DI PUNTI E LINEE IN TESTO ////
+
+/*Trasforma punti e linee in lettera*/
 char readCharacter(){
   bool found;
   for (int i = 0; i < 26; ++i) {
@@ -428,7 +418,8 @@ void initgame() {
   lcd.write(byte(4)); lcd.write(byte(4)); lcd.write(byte(4));
   life = 3;
 }
-//// VERIFICA PAROLA ////
+
+/*Verifica che il carattere inserito corrisponda a quello richiesto*/
 void checkword(char g) {
   lcd.setCursor(0, 3);
   lcd.print("              ");
