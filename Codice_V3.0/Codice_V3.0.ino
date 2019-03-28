@@ -1,4 +1,10 @@
-/*ARDUINO NANO OLD BOOT*/
+/*
+ * Progetto Hack4Fede
+ * Author hackAbility@PoliTo
+ * Modified 28/03/2019 by Andrea
+ * Arduino Nano old boot
+ */
+
 
 // -----DICHIARAZIONI ED INIZIALIZZAZIONI----- //
 /*Librerie*/
