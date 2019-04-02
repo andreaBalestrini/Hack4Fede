@@ -1,7 +1,7 @@
 /*
    Progetto Hack4Fede
    Author hackAbility@PoliTo
-   Modified 28/03/2019 by Andrea
+   Modified 03/04/2019 by Andrea
    Arduino Nano old boot
 */
 
@@ -313,7 +313,7 @@ void saluto(int flag) {
   }
 }
 
-/*Cancella la linea di schermo passata dal parametro*/
+/*Cancella la linea di schermo passata come parametro*/
 void clearlcdline(int line) {
   lcd.setCursor(0, line);
   lcd.print("                    ");
@@ -372,7 +372,7 @@ char readCharacter() {
 }
 //////////////////////////////////////////////////////////////////////////
 
-//// ACQUISISCE LA LETTERA ED EFFETTUA UN CONTROLLO SULLA SUA VALIDITA' ////
+/* Acquisisce la letterea ed effettua un controllo sulla sua validità */
 void myReadChar() {
   if (!nextRead)
     return;
@@ -402,12 +402,13 @@ void myReadChar() {
 }
 
 
-///////////////////// FUNZIONI MOD GIOCO //////////////////////
+// -----FUNZIONI MODALITA' GIOCO----- //
 
-//// INIZIALIZZAZIONE GIOCO ////
+/*Inizializzazione modalità gioco*/
 void initgame() {
 
   clearlcdline(0); clearlcdline(1); clearlcdline(2); clearlcdline(3);
+  //?lcd.clear();
 
   lcd.setCursor(0, 0);
   lcd.print("MODALITA' GIOCO");
