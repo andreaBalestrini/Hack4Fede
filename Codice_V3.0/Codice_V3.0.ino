@@ -1,7 +1,7 @@
 /*
    Progetto Hack4Fede
    Author hackAbility@PoliTo
-   Modified 03/04/2019 by Claudio
+   Modified 03/04/2019 by Andrea
    Arduino Nano old boot
 */
 
@@ -12,8 +12,8 @@
 #include <SoftwareSerial.h>
 
 /*Costanti*/
-#define MAXINPUTTIME 150
-#define ATTESA 1000
+#define MAXINPUTTIME 300
+#define ATTESA 2000
 
 /*Strutture*/
 enum State { // Stato del bottone
@@ -298,7 +298,7 @@ void loop() {
 void saluto(int flag) {
   if (flag == 0) {
     lcd.setCursor(0, 0);
-    lcd.print("CIAO SONO MORSY!!!");
+    lcd.print("CIAO SONO MORSY");
     lcd.setCursor(0, 1);
     lcd.print("SONO PRONTO PER");
     lcd.setCursor(0, 2);
