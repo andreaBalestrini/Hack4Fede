@@ -14,6 +14,8 @@
 
 /*Costanti*/
 #define D_MAXINPUTTIME 800
+#define LENGLCD 20
+#define toneDuration 150
 
 /*Strutture*/
 enum State { // Stato del bottone
@@ -22,12 +24,15 @@ enum State { // Stato del bottone
 } state;
 
 /*Prototipi funzioni*/
-void checkword(char g);
-void clearlcdline(int line);
-void saluto();
+void clearlcdline(int line); //Pulisce la linea di schermo passata come parametro
+void clearCharacter(); //Pulisce la stringa usata per memorizzare la sequenza di punti e linee che compongono una lettera
+void saluto(); //Funzione di avvio, saluta l'utente e fornisce istruzioni circa la modalità impiegata
 void readDashDot(State LineState, State DotState);
 char readCharacter();
-void timeTrigger();
+void myReadChar(); //Controlla che la sequenza di punti e linee inserita corrisponda effettivamente ad una lettera
+void timeTrigger(); //Imposta l'intervallo minimo di tempo tra la pressione dei bottoni, indicata come "modalità"
+void initgame(); //Esegue il gioco contenuto all'interno del programma
+void checkword(char g); //Controlla che la sequenza di punti e linee inserita corrisponda alla lettera richiesta dal gioco
 
 /*Inizializzazone delle librerie*/
 SoftwareSerial BTserial(0, 1); // RX | TX
@@ -131,7 +136,6 @@ int noteDurationsWin[] = {4, 8, 8, 4, 4, 4, 4, 4 };
 int noteDurationsFail[] = {4, 16, 4, 16, 4, 16, 2, 4};
 
 /*Variabili*/
-int LENGLCD = 0;
 int counter = 0; // contatore utilizzato per la posizione della lettera
 int cnt = 0; // sets the LCD screen and dot/line sign
 //int flag = 0; // usato per la funzione di saluto iniziale
@@ -146,8 +150,8 @@ bool isReadingChar = false, nextRead = true;
 char character[5]; // dash-dot-sequence of the current character
 int characterIndex; // index of the next dot/dash in the current character
 //varabili timeTrigger
-int maxinputtime=D_MAXINPUTTIME;
-int attesa=D_MAXINPUTTIME*2;
+int maxinputtime = D_MAXINPUTTIME;
+int attesa = D_MAXINPUTTIME * 2;
 
 //variabili sezione gioco
 bool gamemode = false;
@@ -159,13 +163,13 @@ int life = 0;
 void setup() {
   Serial.begin(9600);
   BTserial.begin(9600);
- 
+
   lcd.begin(20, 4);
   lcd.createChar(4, heart);
   lcd.createChar(DASH, dash);
   lcd.createChar(DOT, dot);
   lcd.createChar(CLEAR, clear);
-  
+
   pinMode(buttonDot, INPUT_PULLUP);
   pinMode(buttonLine, INPUT_PULLUP);
   pinMode(buttonSpace, INPUT_PULLUP);
@@ -174,8 +178,10 @@ void setup() {
 
   analogReference(INTERNAL);
   randomSeed(analogRead(0));
+  lcd.backlight();
+  //lcd.autoscroll();
   delay(100);
-  
+
   saluto();
 }
 
@@ -190,10 +196,10 @@ void loop() {
 
   // if the button is pressed, play a tone
   if (DotState == DOWN && nextRead) {
-    tone(buzzerPin, 3000, 200);
+    tone(buzzerPin, 440, toneDuration);
   }
   if (LineState == DOWN && nextRead) {
-    tone(buzzerPin, 2900, 200);
+    tone(buzzerPin, 440, toneDuration);
   }
 
   if (DotState == DOWN || LineState == DOWN) { // leggo i punti e linee
@@ -210,11 +216,11 @@ void loop() {
     }
     lcd.setCursor(0, 3);
     if (count == 1) {
-      tone(buzzerPin, 200, 200);
+      tone(buzzerPin, 262, toneDuration);
       lcd.print("Un click");
     }
     else if (count == 2) {
-      tone(buzzerPin, 1200, 200);
+      tone(buzzerPin, 294, toneDuration);
       lcd.print("Doppio click");
     }
   }
@@ -283,7 +289,8 @@ void loop() {
       //esco da game mode
       gamemode = false;
       counter = 0;
-      clearlcdline(0); clearlcdline(1); clearlcdline(2); clearlcdline(3);
+      //clearlcdline(0); clearlcdline(1); clearlcdline(2); clearlcdline(3);
+      lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("MODALITA' SCRITTURA");
       delay(1000);
@@ -298,26 +305,27 @@ void loop() {
     nextRead = true;
 }
 
+
 // -----FUNZIONI----- //
 
 /*Funzione saluto iniziale*/
 void saluto() {
-    lcd.setCursor(0, 0);
-    lcd.print("Ciao, sono MORSY!");
-    delay(2000);
-    lcd.clear();
-    timeTrigger();
-    lcd.setCursor(0, 0);
-    lcd.print("Ora sono pronto per");
-    lcd.setCursor(0, 1);
-    lcd.print("essere utilizzato!");
-    delay(3500);
-    lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Ciao, sono MORSY!");
+  delay(2000);
+  lcd.clear();
+  timeTrigger();
+  lcd.setCursor(0, 0);
+  lcd.print("Ora sono pronto per");
+  lcd.setCursor(0, 1);
+  lcd.print("essere utilizzato!");
+  delay(3500);
+  lcd.clear();
 
-    lcd.setCursor(0, 0);
-    lcd.print("MODALITA' SCRITTURA");
-    delay(2500);
-    lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("MODALITA' SCRITTURA");
+  delay(2500);
+  lcd.clear();
 }
 
 /*Cancella la linea di schermo passata come parametro*/
@@ -380,14 +388,20 @@ char readCharacter() {
 
 /* Acquisisce la letterea ed effettua un controllo sulla sua validità */
 void myReadChar() {
-  if (!nextRead)
-    return;
+  if (!nextRead) return;
   nextRead = false;
   char c = readCharacter();
 
   if (c != 0) {
     if (!gamemode) {
       lcd.setCursor(counter++, 0);
+///////////////////////////////// Aggiunta mia personale, riparte dall'inizio della riga se finisce lo spazio sullo schermo
+      if(counter>LENGLCD){
+        clearlcdline(0);
+        lcd.setCursor(0,0);
+        counter=1;
+      }
+///////////////////////////////
       lcd.print(c);
       string_to_send[counter] = c;
     } else
@@ -407,8 +421,9 @@ void myReadChar() {
   clearCharacter();
 }
 
-void timeTrigger(){
-  int reg = analogRead(timePin)+20;
+/*Regola la difficoltà (modalità)*/
+void timeTrigger() {
+  int reg = analogRead(timePin) + 20;
 
   Serial.println(reg);
 
@@ -422,41 +437,41 @@ void timeTrigger(){
   lcd.print("Esperto");
   lcd.setCursor(10, 3);
   lcd.print("Pro");
-  
-  if(reg>19){
-    if(reg<=270){
-      maxinputtime=D_MAXINPUTTIME*2;
-      attesa=maxinputtime*2;
+
+  if (reg > 19) {
+    if (reg <= 270) {
+      maxinputtime = D_MAXINPUTTIME * 2;
+      attesa = maxinputtime * 2;
       Serial.println("Modalità Base");
       lcd.setCursor(18, 0);
       lcd.print("<-");
-    }else if(reg<=520){
-      maxinputtime=D_MAXINPUTTIME;
-      attesa=maxinputtime*2;
+    } else if (reg <= 520) {
+      maxinputtime = D_MAXINPUTTIME;
+      attesa = maxinputtime * 2;
       Serial.println("Modalità Normale");
       lcd.setCursor(18, 1);
       lcd.print("<-");
-    }else if(reg<=770){
-      maxinputtime=D_MAXINPUTTIME/2;
-      attesa=maxinputtime*2;
+    } else if (reg <= 770) {
+      maxinputtime = D_MAXINPUTTIME / 2;
+      attesa = maxinputtime * 2;
       Serial.println("Modalità Esperto");
       lcd.setCursor(18, 2);
       lcd.print("<-");
-    }else if(reg>770){
-      maxinputtime=D_MAXINPUTTIME/6;
-      attesa=maxinputtime*3;
+    } else if (reg > 770) {
+      maxinputtime = D_MAXINPUTTIME / 6;
+      attesa = maxinputtime * 3;
       Serial.println("Modalità Pro");
       lcd.setCursor(18, 3);
       lcd.print("<-");
     }
-  }else{
+  } else {
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("ERRORE MODALITA'");
   }
   delay(2500);
   lcd.clear();
-  
+
   lcd.setCursor(0, 0);
   lcd.print("Per modificare la");
   lcd.setCursor(0, 1);
@@ -467,15 +482,16 @@ void timeTrigger(){
   lcd.print("e riavviami.");
   delay(5000);
   lcd.clear();
-  
+
 }
+
 // -----FUNZIONI MODALITA' GIOCO----- //
 
 /*Inizializzazione modalità gioco*/
 void initgame() {
 
-  clearlcdline(0); clearlcdline(1); clearlcdline(2); clearlcdline(3);
-  //?lcd.clear();
+  //clearlcdline(0); clearlcdline(1); clearlcdline(2); clearlcdline(3);
+  lcd.clear();
 
   lcd.setCursor(0, 0);
   lcd.print("MODALITA' GIOCO");
