@@ -1,19 +1,19 @@
 /*
-   Progetto Hack4Fede
+   Project Hack4Fede
    Author hackAbility@PoliTo
-   Modified 03/04/2019 by Andrea
+   Modified 05/04/2019 by Andrea
    Arduino Nano old boot
 */
 
 
 // -----DICHIARAZIONI ED INIZIALIZZAZIONI----- //
 /*Librerie*/
-#include <LiquidCrystal.h>
+//#include <LiquidCrystal.h>
 #include <SoftwareSerial.h>
+#include <LiquidCrystal_I2C.h>
 
 /*Costanti*/
-#define MAXINPUTTIME 300
-#define ATTESA 2000
+#define D_MAXINPUTTIME 800
 
 /*Strutture*/
 enum State { // Stato del bottone
@@ -24,13 +24,15 @@ enum State { // Stato del bottone
 /*Prototipi funzioni*/
 void checkword(char g);
 void clearlcdline(int line);
-void saluto(int flag);
+void saluto();
 void readDashDot(State LineState, State DotState);
 char readCharacter();
+void timeTrigger();
 
 /*Inizializzazone delle librerie*/
 SoftwareSerial BTserial(0, 1); // RX | TX
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+//LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address A4->SDA  A5->SCL
 
 /*Pinout*/
 int buttonDot = 9;
@@ -38,7 +40,8 @@ int buttonLine = 8;
 int buttonSpace = 7;
 int buttonEndChar = 6;
 int buttonCanc = 10;
-int buzzerPin = A4;
+int buzzerPin = 13;
+int timePin = A7; //se non si utilizza, collegare a massa
 
 /*Dichirazione array contenente la lettera ed il corrispettivo in morse*/
 const char CLEAR = 0;
@@ -131,11 +134,9 @@ int noteDurationsFail[] = {4, 16, 4, 16, 4, 16, 2, 4};
 int LENGLCD = 0;
 int counter = 0; // contatore utilizzato per la posizione della lettera
 int cnt = 0; // sets the LCD screen and dot/line sign
-int flag = 0; // usato per la funzione di saluto iniziale
-
+//int flag = 0; // usato per la funzione di saluto iniziale
 char string_to_send[20];
 
-/////////////////////////////////////////////////////////////////////
 //Doppio click del tasto fine carattere/cancella
 int count = 0;
 unsigned long duration = 0, lastPress = 0;
@@ -144,6 +145,9 @@ bool oneClick = true;
 bool isReadingChar = false, nextRead = true;
 char character[5]; // dash-dot-sequence of the current character
 int characterIndex; // index of the next dot/dash in the current character
+//varabili timeTrigger
+int maxinputtime=D_MAXINPUTTIME;
+int attesa=D_MAXINPUTTIME*2;
 
 //variabili sezione gioco
 bool gamemode = false;
@@ -155,26 +159,28 @@ int life = 0;
 void setup() {
   Serial.begin(9600);
   BTserial.begin(9600);
-
+ 
+  lcd.begin(20, 4);
   lcd.createChar(4, heart);
   lcd.createChar(DASH, dash);
   lcd.createChar(DOT, dot);
   lcd.createChar(CLEAR, clear);
-  lcd.begin(20, 4);
-
+  
   pinMode(buttonDot, INPUT_PULLUP);
   pinMode(buttonLine, INPUT_PULLUP);
-  pinMode(buttonCanc, INPUT_PULLUP);
   pinMode(buttonSpace, INPUT_PULLUP);
+  pinMode(buttonCanc, INPUT_PULLUP);
   pinMode(buttonEndChar, INPUT_PULLUP);
 
+  analogReference(INTERNAL);
   randomSeed(analogRead(0));
+  delay(100);
+  
+  saluto();
 }
 
 // --------LOOP----- //
 void loop() {
-  saluto(flag);
-  flag = 1;
 
   State DotState = digitalRead(buttonDot) ? UP : DOWN;
   State LineState = digitalRead(buttonLine) ? UP : DOWN;
@@ -195,12 +201,12 @@ void loop() {
     readDashDot(LineState, DotState);
   }
 
-  else if (EndCharState == DOWN && oneClick && (millis() - lastPress) > MAXINPUTTIME) {
+  else if (EndCharState == DOWN && oneClick && (millis() - lastPress) > maxinputtime) {
     lastPress = millis();
     oneClick = false;
     if (count++ == 0) {
       nextRead = false;
-      duration = millis() + ATTESA;
+      duration = millis() + attesa;
     }
     lcd.setCursor(0, 3);
     if (count == 1) {
@@ -288,29 +294,30 @@ void loop() {
     }
   }
 
-  if (DotState == UP && LineState == UP && SpaceState == UP && GameState == UP && EndCharState == UP && !nextRead && count == 0 && ((millis() - lastPress) > MAXINPUTTIME ) && cnt <= 4)
+  if (DotState == UP && LineState == UP && SpaceState == UP && GameState == UP && EndCharState == UP && !nextRead && count == 0 && ((millis() - lastPress) > maxinputtime ) && cnt <= 4)
     nextRead = true;
 }
 
 // -----FUNZIONI----- //
 
 /*Funzione saluto iniziale*/
-void saluto(int flag) {
-  if (flag == 0) {
+void saluto() {
     lcd.setCursor(0, 0);
-    lcd.print("CIAO SONO MORSY");
-    lcd.setCursor(0, 1);
-    lcd.print("SONO PRONTO PER");
-    lcd.setCursor(0, 2);
-    lcd.print("ESSERE UTILIZZATO!!");
+    lcd.print("Ciao, sono MORSY!");
     delay(2000);
+    lcd.clear();
+    timeTrigger();
+    lcd.setCursor(0, 0);
+    lcd.print("Ora sono pronto per");
+    lcd.setCursor(0, 1);
+    lcd.print("essere utilizzato!");
+    delay(3500);
     lcd.clear();
 
     lcd.setCursor(0, 0);
     lcd.print("MODALITA' SCRITTURA");
-    delay(1000);
-    clearlcdline(0);
-  }
+    delay(2500);
+    lcd.clear();
 }
 
 /*Cancella la linea di schermo passata come parametro*/
@@ -370,7 +377,6 @@ char readCharacter() {
   }
   return 0;
 }
-//////////////////////////////////////////////////////////////////////////
 
 /* Acquisisce la letterea ed effettua un controllo sulla sua validità */
 void myReadChar() {
@@ -401,7 +407,68 @@ void myReadChar() {
   clearCharacter();
 }
 
+void timeTrigger(){
+  int reg = analogRead(timePin)+20;
 
+  Serial.println(reg);
+
+  lcd.setCursor(0, 0);
+  lcd.print("MODALITA'");
+  lcd.setCursor(10, 0);
+  lcd.print("Base");
+  lcd.setCursor(10, 1);
+  lcd.print("Normale");
+  lcd.setCursor(10, 2);
+  lcd.print("Esperto");
+  lcd.setCursor(10, 3);
+  lcd.print("Pro");
+  
+  if(reg>19){
+    if(reg<=270){
+      maxinputtime=D_MAXINPUTTIME*2;
+      attesa=maxinputtime*2;
+      Serial.println("Modalità Base");
+      lcd.setCursor(18, 0);
+      lcd.print("<-");
+    }else if(reg<=520){
+      maxinputtime=D_MAXINPUTTIME;
+      attesa=maxinputtime*2;
+      Serial.println("Modalità Normale");
+      lcd.setCursor(18, 1);
+      lcd.print("<-");
+    }else if(reg<=770){
+      maxinputtime=D_MAXINPUTTIME/2;
+      attesa=maxinputtime*2;
+      Serial.println("Modalità Esperto");
+      lcd.setCursor(18, 2);
+      lcd.print("<-");
+    }else if(reg>770){
+      maxinputtime=D_MAXINPUTTIME/6;
+      attesa=maxinputtime*3;
+      Serial.println("Modalità Pro");
+      lcd.setCursor(18, 3);
+      lcd.print("<-");
+    }
+  }else{
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("ERRORE MODALITA'");
+  }
+  delay(2500);
+  lcd.clear();
+  
+  lcd.setCursor(0, 0);
+  lcd.print("Per modificare la");
+  lcd.setCursor(0, 1);
+  lcd.print("modalita' ruota la");
+  lcd.setCursor(0, 2);
+  lcd.print("manopola, se esiste,");
+  lcd.setCursor(0, 3);
+  lcd.print("e riavviami.");
+  delay(5000);
+  lcd.clear();
+  
+}
 // -----FUNZIONI MODALITA' GIOCO----- //
 
 /*Inizializzazione modalità gioco*/
