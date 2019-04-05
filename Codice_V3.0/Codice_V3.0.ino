@@ -1,10 +1,13 @@
 /*
    Project Hack4Fede
    Author hackAbility@PoliTo
-   Modified 05/04/2019 by Andrea
-   Arduino Nano old boot
+   Modified 06/04/2019 by Andrea
+   Arduino Nano
 */
-
+/*Bug
+  Lo spazio non cancella il buffer dei caratteri (penso sia risolto)
+  Se arrivo in fondo allo schemo non mi fa più cancellare i caratteri
+*/
 
 // -----DICHIARAZIONI ED INIZIALIZZAZIONI----- //
 /*Librerie*/
@@ -37,7 +40,7 @@ void checkword(char g); //Controlla che la sequenza di punti e linee inserita co
 /*Inizializzazone delle librerie*/
 SoftwareSerial BTserial(0, 1); // RX | TX
 //LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address A4->SDA  A5->SCL
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address, Arduino pin A4->SDA  A5->SCL
 
 /*Pinout*/
 int buttonDot = 9;
@@ -48,7 +51,7 @@ int buttonCanc = 10;
 int buzzerPin = 13;
 int timePin = A7; //se non si utilizza, collegare a massa
 
-/*Dichirazione array contenente la lettera ed il corrispettivo in morse*/
+/*Dichirazione matrice contenente la lettera ed il corrispettivo in morse*/
 const char CLEAR = 0;
 const char DOT = 1;
 const char DASH = 2;
@@ -136,10 +139,9 @@ int noteDurationsWin[] = {4, 8, 8, 4, 4, 4, 4, 4 };
 int noteDurationsFail[] = {4, 16, 4, 16, 4, 16, 2, 4};
 
 /*Variabili*/
-int counter = 0; // contatore utilizzato per la posizione della lettera
+int counter = 0; // contatore utilizzato per la posizione della lettera nello schermo LCD
 int cnt = 0; // sets the LCD screen and dot/line sign
-//int flag = 0; // usato per la funzione di saluto iniziale
-char string_to_send[20];
+//char string_to_send[20]; //eventualmente per BT, commentata su tutto il codice
 
 //Doppio click del tasto fine carattere/cancella
 int count = 0;
@@ -149,6 +151,7 @@ bool oneClick = true;
 bool isReadingChar = false, nextRead = true;
 char character[5]; // dash-dot-sequence of the current character
 int characterIndex; // index of the next dot/dash in the current character
+
 //varabili timeTrigger
 int maxinputtime = D_MAXINPUTTIME;
 int attesa = D_MAXINPUTTIME * 2;
@@ -179,7 +182,6 @@ void setup() {
   analogReference(INTERNAL);
   randomSeed(analogRead(0));
   lcd.backlight();
-  //lcd.autoscroll();
   delay(100);
 
   saluto();
@@ -247,7 +249,7 @@ void loop() {
       if (counter < 0)
         counter = 0;
       lcd.print(' ');
-      string_to_send[counter] = ' ';
+      //string_to_send[counter] = ' ';
       clearlcdline(1);
       lcd.setCursor(0, 1);
       lcd.print("Lettera cancellata");
@@ -263,8 +265,7 @@ void loop() {
   else if (SpaceState == DOWN && !gamemode) { // stampo a video lo spazio
     //leggo carattere se necessario
     lastPress = millis();
-    if (!nextRead)
-      return;
+    if (!nextRead) return;
     nextRead = false;
     if (isReadingChar) {
       myReadChar();
@@ -273,9 +274,17 @@ void loop() {
     lcd.setCursor(0, 1);
     lcd.print("Spazio");
     lcd.setCursor(counter++, 0);
+///////////////////////////////// Aggiunta mia personale, riparte dall'inizio della riga se finisce lo spazio sullo schermo e elimina il buffer dei . - se metti spazio
+    clearCharacter();
+    if(counter>LENGLCD){
+      clearlcdline(0);
+      lcd.setCursor(0,0);
+      counter=1;
+    }
+///////////////////////////////
     lcd.print(' ');
-    string_to_send[counter] = ' ';
-    BTserial.print(string_to_send);
+    //string_to_send[counter] = ' ';
+    //BTserial.print(string_to_send);
     clearlcdline(2);
     cnt = 0;
   }
@@ -289,7 +298,6 @@ void loop() {
       //esco da game mode
       gamemode = false;
       counter = 0;
-      //clearlcdline(0); clearlcdline(1); clearlcdline(2); clearlcdline(3);
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("MODALITA' SCRITTURA");
@@ -301,8 +309,7 @@ void loop() {
     }
   }
 
-  if (DotState == UP && LineState == UP && SpaceState == UP && GameState == UP && EndCharState == UP && !nextRead && count == 0 && ((millis() - lastPress) > maxinputtime ) && cnt <= 4)
-    nextRead = true;
+  if (DotState == UP && LineState == UP && SpaceState == UP && GameState == UP && EndCharState == UP && !nextRead && count == 0 && ((millis() - lastPress) > maxinputtime ) && cnt <= 4) nextRead = true;
 }
 
 
@@ -330,8 +337,11 @@ void saluto() {
 
 /*Cancella la linea di schermo passata come parametro*/
 void clearlcdline(int line) {
-  lcd.setCursor(0, line);
-  lcd.print("                    ");
+  int i;
+  for(i=0; i<LENGLCD; i++){
+    lcd.setCursor(i, line);
+    lcd.print(" ");
+  }
 }
 
 /*Azzera la sequenza di caratteri punto-linea*/
@@ -369,7 +379,7 @@ void readDashDot(State LineState, State DotState) {
   }
 }
 
-/*Trasforma punti e linee in lettera*/
+/*Trasforma punti e linee in lettera, restituisce false se non trova la corrispondenza*/
 char readCharacter() {
   bool found;
   for (int i = 0; i < 26; ++i) {
@@ -386,7 +396,7 @@ char readCharacter() {
   return 0;
 }
 
-/* Acquisisce la letterea ed effettua un controllo sulla sua validità */
+/* Acquisisce la lettera ed effettua un controllo sulla sua validità */
 void myReadChar() {
   if (!nextRead) return;
   nextRead = false;
@@ -403,7 +413,7 @@ void myReadChar() {
       }
 ///////////////////////////////
       lcd.print(c);
-      string_to_send[counter] = c;
+      //string_to_send[counter] = c;
     } else
       checkword(c);
     cnt = 0;
@@ -490,7 +500,6 @@ void timeTrigger() {
 /*Inizializzazione modalità gioco*/
 void initgame() {
 
-  //clearlcdline(0); clearlcdline(1); clearlcdline(2); clearlcdline(3);
   lcd.clear();
 
   lcd.setCursor(0, 0);
