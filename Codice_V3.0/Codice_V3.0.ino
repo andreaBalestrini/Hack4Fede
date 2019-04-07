@@ -46,7 +46,7 @@ void saluto(); //Funzione di avvio, saluta l'utente e fornisce istruzioni circa 
 void myReadChar(); //Controlla che la sequenza di punti e linee inserita corrisponda effettivamente ad una lettera
 void readDashDot(State LineState, State DotState); //Legge e stampa su lcd il punto o la linea
 char readCharacter(); //Trasforma punti e linee in lettera, restituisce false se non trova la corrispondenza
-void timeTrigger(); //Regola la difficoltà (tempo minimo di attesa tra la pressione dei tasti) tramite input da trimmer
+void timeTrigger(); //Regola la velocità (tempo minimo di attesa tra la pressione dei tasti) tramite input da trimmer
 void clearCharacter(); //Pulisce la stringa usata per memorizzare la sequenza di punti e linee che compongono una lettera
 void clearlcdline(int line); //Cancella la linea di schermo passata come parametro
 void initgame(); //Esegue il gioco contenuto all'interno del programma
@@ -262,7 +262,6 @@ void loop() {
     if (count == 1) { //fine carattere
       nextRead = true;
       myReadChar();
-
     } else if (isReadingChar) { //cancella buffer
       clearCharacter();
       cnt = 0;
@@ -270,7 +269,6 @@ void loop() {
       lcd.setCursor(0, 3);
       lcd.print("Reinserire carattere");
       isReadingChar = false;
-
     } else if (!gamemode) { //cancella carattere
       counter--;
       if (counter < 0) {
@@ -296,9 +294,7 @@ void loop() {
     lastPress = millis();
     if (!nextRead) return;
     nextRead = false;
-    if (isReadingChar) {
-      myReadChar();
-    }
+    if (isReadingChar) myReadChar();
     clearCharacter();
     clearlcdline(2);
     lcd.setCursor(0, 2);
@@ -309,11 +305,8 @@ void loop() {
       if (counterR == PROWLCD - 1) {
         counterR = 0;
         for (int i = 0; i < PROWLCD; i++) clearlcdline(i);
-        lcd.setCursor(0, counterR);
-      } else {
-        counterR++;
-        lcd.setCursor(0, counterR);
-      }
+      } else counterR++;
+      lcd.setCursor(0, counterR);
       counter = 1;
     }
     ///////////////////////////////
@@ -324,8 +317,7 @@ void loop() {
 
   else if (GameState == DOWN) {
     lastPress = millis();
-    if (!nextRead)
-      return;
+    if (!nextRead) return;
     nextRead = false;
     if (gamemode) {
       //esco da game mode
@@ -381,11 +373,8 @@ void myReadChar() {
         if (counterR == PROWLCD - 1) {
           counterR = 0;
           for (int i = 0; i < PROWLCD; i++) clearlcdline(i);
-          lcd.setCursor(0, counterR);
-        } else {
-          counterR++;
-          lcd.setCursor(0, counterR);
-        }
+        } else counterR++;
+        lcd.setCursor(0, counterR);
         counter = 1;
       }
       ///////////////////////////////
@@ -441,14 +430,14 @@ char readCharacter() {
   return 0;
 }
 
-/*Regola la difficoltà (tempo minimo di attesa tra la pressione dei tasti) tramite input da trimmer*/
+/*Regola la velocità (tempo minimo di attesa tra la pressione dei tasti) tramite input da trimmer*/
 void timeTrigger() {
   int reg = analogRead(timePin) + 20;
 
   lcd.setCursor(0, 0);
-  lcd.print("MODO");
+  lcd.print("Velocita'");
   lcd.setCursor(10, 0);
-  lcd.print("Base");
+  lcd.print("Lento");
   lcd.setCursor(10, 1);
   lcd.print("Normale");
   lcd.setCursor(10, 2);
@@ -456,7 +445,7 @@ void timeTrigger() {
   lcd.setCursor(10, 3);
   lcd.print("Pro");
 
-  if (reg > 19) { //seleziono il modo, dall'alto: Base, Normale, Esperto, Pro
+  if (reg > 19) { //seleziono la velocità, dall'alto: Lento, Normale, Esperto, Pro
     if (reg <= 270) {
       maxinputtime = D_MAXINPUTTIME * 2;
       attesa = maxinputtime * 2;
@@ -483,9 +472,9 @@ void timeTrigger() {
   lcd.clear();
 
   lcd.setCursor(0, 0);
-  lcd.print("Per modificare il");
+  lcd.print("Per modificare la");
   lcd.setCursor(0, 1);
-  lcd.print("modo ruota la");
+  lcd.print("velocita' ruota la");
   lcd.setCursor(0, 2);
   lcd.print("manopola, se esiste,");
   lcd.setCursor(0, 3);
@@ -526,10 +515,8 @@ void initgame() {
   lcd.print("Traduci in Morse: ");
   lcd.print(gamechar);
   lcd.setCursor(0, 1);
-  lcd.print("Hai: ");
+  lcd.print("Vite: ");
   for (int i = 0; i < (life = 3); i++) lcd.write(HEART);
-  lcd.print(" vite!");
-  //life = 3;
 }
 
 /*Verifica che il carattere inserito corrisponda a quello richiesto dal gioco*/
@@ -541,10 +528,10 @@ void checkword(char g) {
   int noteDurationsWin[] = {4, 8, 8, 4, 4, 4, 4, 4 }; // note duration: 4 = quarter note, 8 = eighth note, etc.
   int noteDurationsFail[] = {4, 16, 4, 16, 4, 16, 2, 4}; // note duration: 4 = quarter note, 8 = eighth note, etc.
 
-  lcd.setCursor(0, 3);
-  lcd.print("              ");
+  //lcd.setCursor(0, 3);
+  //lcd.print("              ");
   if (g == gamechar || life == 1) {
-    clearlcdline(1); clearlcdline(2); clearlcdline(3);
+    for (i = 1; i < ROWLCD; i++) clearlcdline(i);
     lcd.setCursor(0, 1);
     if (life > 0) {
       lcd.print("HAI VINTO ");
@@ -577,7 +564,7 @@ void checkword(char g) {
   } else {
     life--;
     for (i = 1; i < ROWLCD; i++) clearlcdline(i);
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 2; i++) {
       lcd.setCursor(0, 1);
       lcd.print("Errore");
       delay(500);
@@ -585,7 +572,7 @@ void checkword(char g) {
       delay(500);
     }
     lcd.setCursor(0, 1);
+    lcd.print("Vite: ");
     for (i = 0; i < life; i++) lcd.write(HEART);
-    lcd.print(" vite!");
   }
 }
