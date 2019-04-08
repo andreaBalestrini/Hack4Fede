@@ -504,7 +504,9 @@ void clearlcdline(int line) {
 /*Inizializzazione modalità gioco*/
 void initgame() {
   r = random(R);
-
+  counter = 0;
+  counterR = 0;
+  clearCharacter();
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("MODALITA' GIOCO");
@@ -528,12 +530,11 @@ void checkword(char g) {
   int noteDurationsWin[] = {4, 8, 8, 4, 4, 4, 4, 4 }; // note duration: 4 = quarter note, 8 = eighth note, etc.
   int noteDurationsFail[] = {4, 16, 4, 16, 4, 16, 2, 4}; // note duration: 4 = quarter note, 8 = eighth note, etc.
 
-  //lcd.setCursor(0, 3);
-  //lcd.print("              ");
+  Serial.println(life);
   if (g == gamechar || life == 1) {
     for (i = 1; i < ROWLCD; i++) clearlcdline(i);
     lcd.setCursor(0, 1);
-    if (life > 0) {
+    if (g == gamechar) {
       lcd.print("HAI VINTO ");
       lcd.print(HAPPY);
       for (thisNote = 0; thisNote < 8; thisNote++) {
@@ -558,7 +559,7 @@ void checkword(char g) {
     lcd.setCursor(0, 2);
     lcd.print("Corretta: ");
     for (int i = 1; i < C; i++) lcd.write(alphabet[r][i]);
-    delay(5000);
+    delay(4000);
     initgame();
 
   } else {
