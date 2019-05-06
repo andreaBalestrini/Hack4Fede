@@ -1,8 +1,8 @@
 /*
- * Project Hack4Fede
- * Author hackAbility@PoliTo
- * Modified 07/04/2019 by Andrea
- * Arduino Nano
+   Project Hack4Fede
+   Author hackAbility@PoliTo
+   Modified 07/04/2019 by Andrea
+   Arduino Nano
 */
 
 /*Bug
@@ -246,9 +246,9 @@ void loop() {
       nextRead = false;
       duration = millis() + attesa;
     }
-    clearlcdline(2);
-    clearlcdline(3);
-    lcd.setCursor(0, 2);
+    clearlcdline(ROWLCD - 2);
+    clearlcdline(ROWLCD - 1);
+    lcd.setCursor(0, ROWLCD - 2);
     if (count == 1) {
       tone(buzzerPin, 262, toneDuration);
       lcd.print("Un click");
@@ -265,8 +265,8 @@ void loop() {
     } else if (isReadingChar) { //cancella buffer
       clearCharacter();
       cnt = 0;
-      clearlcdline(3);
-      lcd.setCursor(0, 3);
+      clearlcdline(ROWLCD - 1);
+      lcd.setCursor(0, ROWLCD - 1);
       lcd.print("Reinserire carattere");
       isReadingChar = false;
     } else if (!gamemode) { //cancella carattere
@@ -280,8 +280,8 @@ void loop() {
       }
       lcd.setCursor(counter, counterR);
       lcd.print(' ');
-      clearlcdline(3);
-      lcd.setCursor(0, 3);
+      clearlcdline(ROWLCD - 1);
+      lcd.setCursor(0, ROWLCD - 1);
       lcd.print("Carattere cancellato");
       cnt = 0;
     }
@@ -296,8 +296,8 @@ void loop() {
     nextRead = false;
     if (isReadingChar) myReadChar();
     clearCharacter();
-    clearlcdline(2);
-    lcd.setCursor(0, 2);
+    clearlcdline(ROWLCD - 2);
+    lcd.setCursor(0, ROWLCD - 2);
     lcd.print("Spazio");
     lcd.setCursor(counter++, counterR);
     ///////////////////////////////// Aggiunta mia personale, riparte dall'inizio della riga se finisce lo spazio sullo schermo e elimina il buffer dei . - se metti spazio
@@ -311,7 +311,7 @@ void loop() {
     }
     ///////////////////////////////
     lcd.print(' ');
-    clearlcdline(3);
+    clearlcdline(ROWLCD - 1);
     cnt = 0;
   }
 
@@ -382,8 +382,8 @@ void myReadChar() {
     } else checkword(c);
     cnt = 0;
   } else {
-    clearlcdline(3);
-    lcd.setCursor(0, 3);
+    clearlcdline(ROWLCD - 1);
+    lcd.setCursor(0, ROWLCD - 1);
     lcd.print("Carattere non valido");
     cnt = 0;
   }
@@ -400,16 +400,16 @@ void readDashDot(State LineState, State DotState) {
     if (LineState == DOWN) {
       character[characterIndex] = DASH;
       clearlcdline(2);
-      lcd.setCursor(0, 2);
+      lcd.setCursor(0, ROWLCD-2);
       lcd.print("Linea");
     } else if (DotState == DOWN) {
       character[characterIndex] = DOT;
-      clearlcdline(2);
-      lcd.setCursor(0, 2);
+      clearlcdline(ROWLCD-2);
+      lcd.setCursor(0, ROWLCD-2);
       lcd.print("Punto");
     }
-    if (cnt == 0) clearlcdline(3);
-    lcd.setCursor(cnt, 3);
+    if (cnt == 0) clearlcdline(ROWLCD-1);
+    lcd.setCursor(cnt, ROWLCD-1);
     lcd.write(character[characterIndex++]);
     cnt++;
   }
