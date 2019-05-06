@@ -40,6 +40,7 @@ int timePin = A7; //se non si utilizza il selettore per il modo, collegare a GND
 
 /*Inizializzazone delle librerie*/
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address, Arduino pin A4->SDA  A5->SCL
+SoftwareSerial BTserial(2, 3); // RX | TX // Connect the HC-06 TX to the Arduino RX on pin 2. Connect the HC-06 RX to the Arduino TX on pin 3 through a voltage divider.
 
 /*Prototipi funzioni*/
 void saluto(); //Funzione di avvio, saluta l'utente e fornisce istruzioni circa la modalità impiegata tramite la chiamata a timeTrigger
@@ -192,10 +193,14 @@ int r; //riga della matrice dove si trova il carattere gamechar
 char gamechar;
 int life = 0;
 
+//Variabili bluetooth
+char s[30];
+int scount=0;
 
 // --------SETUP----- //
 void setup() {
   Serial.begin(9600);
+  BTserial.begin(9600);
 
   lcd.begin(LENGLCD, ROWLCD);
   lcd.createChar(HEART, heart);
@@ -216,6 +221,7 @@ void setup() {
   lcd.backlight();
   delay(500);
 
+  BTserial.print("Ready, Steady, GO!\r\n");
   saluto();
 }
 
@@ -284,6 +290,9 @@ void loop() {
       lcd.setCursor(0, ROWLCD - 1);
       lcd.print("Carattere cancellato");
       cnt = 0;
+      /////////////
+      s[scount--]='\000';
+      /////////////////
     }
     count = 0;
   }
@@ -310,7 +319,14 @@ void loop() {
       counter = 1;
     }
     lcd.print(' ');
-    Serial.print(' ');
+    /////////////////////
+    for(int i=0; i<scount; i++){
+      BTserial.print(s[i]);
+      s[i]='\000';
+    }
+    BTserial.print("\r\n");
+    delay(3);
+    ////////////////
     clearlcdline(ROWLCD - 1);
     cnt = 0;
   }
@@ -378,7 +394,10 @@ void myReadChar() {
         counter = 1;
       }
       lcd.print(c);
-      Serial.print(c);
+      ///////////
+      s[scount++]=c;
+      //BTserial.print(c);
+      ///////////////
     } else checkword(c);
     cnt = 0;
   } else {
