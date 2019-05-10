@@ -16,7 +16,7 @@
 
 /*Costanti*/
 #define D_MAXINPUTTIME 800
-#define LENGLCD 20 //colonne dello schermo LCD, minimo 20
+#define COLUMNLCD 20 //colonne dello schermo LCD, minimo 20
 #define ROWLCD 4 //righe dello schermo LCD, minimo 4
 #define PROWLCD 2 //righe dello schermo LCD che possono contenere il testo
 #define toneDuration 150 //durata dei toni eseguiti alla pressione dei tasti [ms]
@@ -44,7 +44,7 @@ SoftwareSerial BTserial(2, 3); // RX | TX // Connect the HC-06 TX to the Arduino
 
 /*Prototipi funzioni*/
 void saluto(); //Funzione di avvio, saluta l'utente e fornisce istruzioni circa la modalità impiegata tramite la chiamata a timeTrigger
-void myReadChar(); //Controlla che la sequenza di punti e linee inserita corrisponda effettivamente ad una lettera
+void printReadChar(); //Controlla che la sequenza di punti e linee inserita corrisponda effettivamente ad una lettera
 void readDashDot(State LineState, State DotState); //Legge e stampa su lcd il punto o la linea
 char readCharacter(); //Trasforma punti e linee in lettera, restituisce false se non trova la corrispondenza
 void timeTrigger(); //Regola la velocità (tempo minimo di attesa tra la pressione dei tasti) tramite input da trimmer
@@ -170,9 +170,9 @@ byte sad[8] = {
 
 /*Variabili*/
 //variabili attinenti alla posizione su schermo LCD
-int counter = 0; // contatore utilizzato per la posizione della lettera nello schermo LCD
+int counterC = 0; // contatore utilizzato per la posizione della lettera (colonna) nello schermo LCD
 int counterR = 0; // contatore utilizzato per la posizione della lettera (riga) nello schermo LCD
-int cnt = 0; // sets the LCD screen and dot/line sign
+int cnt = 0; // sets the LCD dot/line sign column position
 
 //Doppio click del tasto fine carattere/cancella
 int count = 0;
@@ -194,7 +194,7 @@ char gamechar;
 int life = 0;
 
 //Variabili bluetooth
-char s[30];
+char btString[30];
 int scount=0;
 int baudRate = 9600;
 
@@ -203,7 +203,7 @@ void setup() {
   Serial.begin(9600);
   BTserial.begin(baudRate);
 
-  lcd.begin(LENGLCD, ROWLCD);
+  lcd.begin(COLUMNLCD, ROWLCD);
   lcd.createChar(HEART, heart);
   lcd.createChar(DASH, dash);
   lcd.createChar(DOT, dot);
@@ -225,6 +225,8 @@ void setup() {
   saluto();
   Serial.print("BT Baudrate: ");
   Serial.println(baudRate);
+  Serial.print("SR Baudrate: ");
+  Serial.println(9600);
   BTserial.print("Ready, Steady, GO!\r\n");
 }
 
@@ -237,17 +239,10 @@ void loop() {
   State SpaceState = digitalRead(buttonSpace) ? UP : DOWN;
   State EndCharState = digitalRead(buttonEndChar) ? UP : DOWN;
 
-  // if the button is pressed, play a tone
-  if (DotState == DOWN && nextRead) {
-    tone(buzzerPin, 440, toneDuration);
-  }
-  if (LineState == DOWN && nextRead) {
-    tone(buzzerPin, 440, toneDuration);
-  }
-
-  if (DotState == DOWN || LineState == DOWN) { // leggo i punti e linee
+  if (DotState == DOWN || LineState == DOWN && (millis() - lastPress) > maxinputtime) { // leggo i punti e linee
     lastPress = millis();
     readDashDot(LineState, DotState);
+    ////////////////////////DARIVEDERE///////////////////
   } else if (EndCharState == DOWN && oneClick && (millis() - lastPress) > maxinputtime) {
     lastPress = millis();
     oneClick = false;
@@ -270,68 +265,64 @@ void loop() {
   if (count > 0 && millis() >= duration) {
     if (count == 1) { //fine carattere
       nextRead = true;
-      myReadChar();
+      printReadChar();
     } else if (isReadingChar) { //cancella buffer
       clearCharacter();
       cnt = 0;
       clearlcdline(ROWLCD - 1);
       lcd.setCursor(0, ROWLCD - 1);
       lcd.print("Reinserire carattere");
-      isReadingChar = false;
     } else if (!gamemode) { //cancella carattere
-      counter--;
-      if (counter < 0) {
+      counterC--;
+      if (counterC < 0) {
         if (counterR == PROWLCD - 1 && counterR > 0) {
           counterR--;
           if (counterR < 0) counterR = 0;
-          counter = LENGLCD - 1;
-        } else counter = 0;
+          counterC = COLUMNLCD - 1;
+        } else counterC = 0;
       }
-      lcd.setCursor(counter, counterR);
+      lcd.setCursor(counterC, counterR);
       lcd.print(' ');
       clearlcdline(ROWLCD - 1);
       lcd.setCursor(0, ROWLCD - 1);
       lcd.print("Carattere cancellato");
       cnt = 0;
       /////////////
-      s[scount--]='\000';
+      btString[scount--]='\000';
       /////////////////
     }
     count = 0;
   }
-  //////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////DARIVEDERE//////////////////////////////////////////////////////
 
-  else if (SpaceState == DOWN && !gamemode) { // stampo a video lo spazio
-    //leggo carattere se necessario
+  else if (SpaceState == DOWN && (millis() - lastPress) > maxinputtime && !gamemode) { // stampo a video lo spazio
     lastPress = millis();
-    if (!nextRead) return;
-    nextRead = false;
-    if (isReadingChar) myReadChar();
-    clearCharacter();
-    clearlcdline(ROWLCD - 2);
-    lcd.setCursor(0, ROWLCD - 2);
-    lcd.print("Spazio");
-    lcd.setCursor(counter++, counterR);
-    // Riparte dall'inizio della riga se finisce lo spazio sullo schermo e elimina il buffer dei . - se metti spazio
-    if (counter > LENGLCD) {
-      if (counterR == PROWLCD - 1) {
-        counterR = 0;
-        for (int i = 0; i < PROWLCD; i++) clearlcdline(i);
-      } else counterR++;
-      lcd.setCursor(0, counterR);
-      counter = 1;
+    if (nextRead){
+      if (isReadingChar) printReadChar();
+      clearlcdline(ROWLCD - 2);
+      clearlcdline(ROWLCD - 1);
+      lcd.setCursor(0, ROWLCD - 2);
+      lcd.print("Spazio");
+      lcd.setCursor(counterC++, counterR);
+      if (counterC > COLUMNLCD) { // Riparte dall'inizio della riga sucessiva se finisce lo spazio sullo schermo
+        if (counterR == PROWLCD - 1) {
+          counterR = 0;
+          for (int i = 0; i < PROWLCD; i++) clearlcdline(i);
+        } else counterR++;
+        lcd.setCursor(0, counterR);
+        counterC = 1;
+      }
+      lcd.print(' ');
+      cnt = 0;
+      /////////////////////
+      for(int i=0; i<scount; i++){
+        BTserial.print(btString[i]);
+        btString[i]='\000';
+      }
+      BTserial.print(' ');
+      delay(3);
+      ////////////////
     }
-    lcd.print(' ');
-    /////////////////////
-    for(int i=0; i<scount; i++){
-      BTserial.print(s[i]);
-      s[i]='\000';
-    }
-    BTserial.print(' ');
-    delay(3);
-    ////////////////
-    clearlcdline(ROWLCD - 1);
-    cnt = 0;
   }
 
   else if (GameState == DOWN) {
@@ -341,7 +332,7 @@ void loop() {
     if (gamemode) {
       //esco da game mode
       gamemode = false;
-      counter = 0;
+      counterC = 0;
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("MODALITA' SCRITTURA");
@@ -363,68 +354,34 @@ void loop() {
 void saluto() {
   lcd.setCursor(0, 0);
   lcd.print("Ciao, sono MORSY!");
-  delay(2000);
+  delay(1000);
   lcd.clear();
   timeTrigger();
   lcd.setCursor(0, 0);
   lcd.print("Ora sono pronto per");
   lcd.setCursor(0, 1);
   lcd.print("essere utilizzato!");
-  delay(2750);
+  delay(2000);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("MODALITA' SCRITTURA");
-  delay(2500);
+  delay(1500);
   lcd.clear();
-}
-
-/* Acquisisce la lettera ed effettua un controllo sulla sua validità */ //modificare la descrizione
-void myReadChar() {
-  if (!nextRead) return;
-  nextRead = false;
-  char c = readCharacter();
-
-  if (c != 0) {
-    if (!gamemode) {
-      lcd.setCursor(counter++, counterR);
-      // Aggiunta mia personale, riparte dall'inizio della riga se finisce lo spazio sullo schermo
-      if (counter > LENGLCD) {
-        if (counterR == PROWLCD - 1) {
-          counterR = 0;
-          for (int i = 0; i < PROWLCD; i++) clearlcdline(i);
-        } else counterR++;
-        lcd.setCursor(0, counterR);
-        counter = 1;
-      }
-      lcd.print(c);
-      ///////////
-      s[scount++]=c;
-      //BTserial.print(c);
-      ///////////////
-    } else checkword(c);
-    cnt = 0;
-  } else {
-    clearlcdline(ROWLCD - 1);
-    lcd.setCursor(0, ROWLCD - 1);
-    lcd.print("Carattere non valido");
-    cnt = 0;
-  }
-  isReadingChar = false;
-  clearCharacter();
 }
 
 /*Legge e stampa su lcd il punto o la linea*/
 void readDashDot(State LineState, State DotState) {
-  if (!nextRead || characterIndex >= C - 1) return;
-  else {
+  if (nextRead && characterIndex < C - 1){
     isReadingChar = true;
     nextRead = false;
     if (LineState == DOWN) {
+      tone(buzzerPin, 784, toneDuration);
       character[characterIndex] = DASH;
       clearlcdline(2);
       lcd.setCursor(0, ROWLCD-2);
       lcd.print("Linea");
     } else if (DotState == DOWN) {
+      tone(buzzerPin, 880, toneDuration);
       character[characterIndex] = DOT;
       clearlcdline(ROWLCD-2);
       lcd.setCursor(0, ROWLCD-2);
@@ -437,7 +394,40 @@ void readDashDot(State LineState, State DotState) {
   }
 }
 
-/*Trasforma punti e linee in lettera, restituisce false se non trova la corrispondenza*/ //da editare
+/* Stampa su schermo lcd la lettera inserita*/
+void printReadChar() {
+  if (nextRead){
+    char c = readCharacter();
+    nextRead = false;
+    clearCharacter();
+    
+    if (c != 0) {
+      if (!gamemode) {
+        lcd.setCursor(counterC++, counterR);
+        if (counterC > COLUMNLCD) { // Riparte dall'inizio della riga sucessiva se finisce lo spazio sullo schermo
+          if (counterR == PROWLCD - 1) {
+            counterR = 0;
+            for (int i = 0; i < PROWLCD; i++) clearlcdline(i);
+          } else counterR++;
+          lcd.setCursor(0, counterR);
+          counterC = 1;
+        }
+        lcd.print(c);
+        ///////////
+        btString[scount++]=c;
+        ///////////////
+      } else checkword(c);
+      cnt = 0;
+    } else {
+      clearlcdline(ROWLCD - 1);
+      lcd.setCursor(0, ROWLCD - 1);
+      lcd.print("Carattere non valido");
+      cnt = 0;
+    }
+  }
+}
+
+/*Trasforma punti e linee in lettera, restituisce 0 se non trova la corrispondenza*/
 char readCharacter() {
   bool found;
   for (int i = 0; i < R; ++i) {
@@ -450,6 +440,23 @@ char readCharacter() {
     if (found) return alphabet[i][0];
   }
   return 0;
+}
+
+/*Pulisce la stringa usata per memorizzare la sequenza di punti e linee che compongono una lettera*/
+void clearCharacter() {
+  characterIndex = 0;
+  for (int i = 0; i < C - 1; ++i) {
+    character[i] = CLEAR;
+  }
+  isReadingChar = false;
+}
+
+/*Cancella la linea di schermo passata come parametro*/
+void clearlcdline(int line) {
+  for (int i = 0; i < COLUMNLCD; i++) {
+    lcd.setCursor(i, line);
+    lcd.print(" ");
+  }
 }
 
 /*Regola la velocità (tempo minimo di attesa tra la pressione dei tasti) tramite input da trimmer*/
@@ -505,28 +512,12 @@ void timeTrigger() {
   lcd.clear();
 }
 
-/*Pulisce la stringa usata per memorizzare la sequenza di punti e linee che compongono una lettera*/
-void clearCharacter() {
-  characterIndex = 0;
-  for (int i = 0; i < C - 1; ++i) {
-    character[i] = CLEAR;
-  }
-}
-
-/*Cancella la linea di schermo passata come parametro*/
-void clearlcdline(int line) {
-  for (int i = 0; i < LENGLCD; i++) {
-    lcd.setCursor(i, line);
-    lcd.print(" ");
-  }
-}
-
 // -----FUNZIONI MODALITA' GIOCO----- //
 
 /*Inizializzazione modalità gioco*/
 void initgame() {
   r = random(R);
-  counter = 0;
+  counterC = 0;
   counterR = 0;
   clearCharacter();
   lcd.clear();
