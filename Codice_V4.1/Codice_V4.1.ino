@@ -6,7 +6,7 @@
 */
 
 /*Bug
-  Al momento non ne ho trovati
+  Problemi selettore modalità causa modulo bluetooth
 */
 
 // -----DICHIARAZIONI ED INIZIALIZZAZIONI----- //
@@ -371,7 +371,9 @@ void loop() {
 void saluto() {
   lcd.setCursor(0, 0);
   lcd.print("Ciao, sono MORSY!");
-  delay(1000);
+  lcd.setCursor(0, 1);
+  lcd.print("V4.1");
+  delay(1250);
   lcd.clear();
   timeTrigger();
   lcd.setCursor(0, 0);
