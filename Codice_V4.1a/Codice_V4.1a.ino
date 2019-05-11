@@ -261,28 +261,34 @@ void loop() {
     lastPress = millis();
     if (nextRead) {
       nextRead = false;
-      if (count++ == 0) {
+      if (count == 0) {
         duration = millis() + attesa;
       }
       clearlcdline(ROWLCD - 2);
       clearlcdline(ROWLCD - 1);
       lcd.setCursor(0, ROWLCD - 2);
-      if (count == 1) {
-        oneClick = true;
+      if (oneClick) {
+        oneClick = false;
+        count =1;
         tone(buzzerPin, 262, toneDuration);
         lcd.print("Un click");
-      } else if (count == 2) {
-        twoClick = true;
+      } else if (twoClick) {
+        twoClick = false;
+        count = 2;
         tone(buzzerPin, 294, toneDuration);
         lcd.print("Doppio click");
-      } else if (count == 3) {
+      } else {
+        count = 3;
         tone(buzzerPin, 330, toneDuration);
         lcd.print("Triplo click");
       }
     }
+  }else if (EndCharState == UP && !oneClick && !twoClick) {
+    oneClick = true;
+    twoClick = true;
   }
 
-  if (count > 0 && (oneClick || twoClick) && millis() >= duration) {
+  if (count > 0 && millis() >= duration) {
     if (count == 1) { //fine carattere
       nextRead = true;
       printReadChar();
@@ -324,8 +330,8 @@ void loop() {
       } else initgame(); //rilancia il gioco
     }
     count = 0;
-    oneClick = false;
-    twoClick = false;
+    oneClick = true;
+    twoClick = true;
   }
   ////////////////////////////////////////////////////////////////
   if (SpaceState == DOWN && !gamemode) { // stampo a video lo spazio
@@ -381,7 +387,7 @@ void loop() {
     }
   }
 
-  if (DotState == UP && LineState == UP && SpaceState == UP && GameState == UP && EndCharState == UP && !nextRead && count == 0 && ((millis() - lastPress) > maxinputtime )) nextRead = true;
+  if (DotState == UP && LineState == UP && SpaceState == UP && GameState == UP && EndCharState == UP && !nextRead && ((millis() - lastPress) > maxinputtime )) nextRead = true;
 
   delay(10);
 }
