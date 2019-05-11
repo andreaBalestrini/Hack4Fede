@@ -269,7 +269,7 @@ void loop() {
       lcd.setCursor(0, ROWLCD - 2);
       if (oneClick) {
         oneClick = false;
-        count =1;
+        count = 1;
         tone(buzzerPin, 262, toneDuration);
         lcd.print("Un click");
       } else if (twoClick) {
@@ -283,12 +283,9 @@ void loop() {
         lcd.print("Triplo click");
       }
     }
-  }else if (EndCharState == UP && !oneClick && !twoClick) {
-    oneClick = true;
-    twoClick = true;
   }
 
-  if (count > 0 && millis() >= duration) {
+  if (count > 0 && millis() > duration) {
     if (count == 1) { //fine carattere
       nextRead = true;
       printReadChar();
