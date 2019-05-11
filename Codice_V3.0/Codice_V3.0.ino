@@ -42,16 +42,16 @@ int timePin = A7; //se non si utilizza il selettore per il modo, collegare a GND
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address, Arduino pin A4->SDA  A5->SCL
 
 /*Prototipi funzioni*/
-void saluto(); //Funzione di avvio, saluta l'utente e fornisce istruzioni circa la modalità impiegata tramite la chiamata a timeTrigger
-void printReadChar(); //Controlla che la sequenza di punti e linee inserita corrisponda effettivamente ad una lettera
-void readDashDot(State LineState, State DotState); //Legge e stampa su lcd il punto o la linea
-char readCharacter(); //Trasforma punti e linee in lettera, restituisce false se non trova la corrispondenza
-void timeTrigger(); //Regola la velocità (tempo minimo di attesa tra la pressione dei tasti) tramite input da trimmer
-void clearCharacter(); //Pulisce la stringa usata per memorizzare la sequenza di punti e linee che compongono una lettera
-void clearlcdline(int line); //Cancella la linea di schermo passata come parametro
-void clearLCD();
-void initgame(); //Esegue il gioco contenuto all'interno del programma
-void checkword(char g); //Verifica che il carattere inserito corrisponda a quello richiesto dal gioco
+void saluto(); /*Funzione di avvio, saluta l'utente e fornisce istruzioni circa la modalità impiegata tramite la chiamata a timeTrigger*/
+void readDashDot(State LineState, State DotState); /*Legge e stampa su lcd il punto o la linea*/
+void printReadChar(); /* Stampa su schermo lcd la lettera inserita*/
+char readCharacter(); /*Trasforma punti e linee in lettera, restituisce 0 se non trova la corrispondenza*/
+void clearCharacter(); /*Pulisce la stringa usata per memorizzare la sequenza di punti e linee che compongono una lettera*/
+void clearlcdline(int line); /*Cancella la linea di schermo passata come parametro*/
+void clearLCD(); /*Cancella lo schermo e resetta i contatori di righe e colonne*/
+void timeTrigger(); /*Regola la velocità (tempo minimo di attesa tra la pressione dei tasti) tramite input da trimmer*/
+void initgame(); /*Inizializzazione modalità gioco*/
+void checkword(char g); /*Verifica che il carattere inserito corrisponda a quello richiesto dal gioco*/
 
 /*Dichirazione matrice contenente la lettera ed il corrispettivo in morse*/
 const char CLEAR = 0;
@@ -174,10 +174,10 @@ int counterC = 0; // contatore utilizzato per la posizione della lettera (colonn
 int counterR = 0; // contatore utilizzato per la posizione della lettera (riga) nello schermo LCD
 int cnt = 0; // sets the LCD dot/line sign column position
 
-//Triplo click del tasto fine carattere/cancella
+//Click multiplo del tasto fine carattere/cancella
 int count = 0;
 unsigned long duration = 0, lastPress = 0;
-boolean oneClick = false, twoClick = false;
+boolean oneClick = false;
 
 bool isReadingChar = false, nextRead = true;
 char character[C - 1]; // dash-dot-sequence of the current character
@@ -229,14 +229,6 @@ void loop() {
   State GameState = digitalRead(buttonCanc) ? UP : DOWN;
   State SpaceState = digitalRead(buttonSpace) ? UP : DOWN;
   State EndCharState = digitalRead(buttonEndChar) ? UP : DOWN;
-
-  Serial.print(millis());
-  Serial.print(" ");
-  Serial.println(lastPress);
-  Serial.print(millis() - lastPress);
-  Serial.print(" --> ");
-  Serial.println(maxinputtime);
-  delay(5);
 
   if (DotState == DOWN || LineState == DOWN) { // leggo i punti e linee
     lastPress = millis();

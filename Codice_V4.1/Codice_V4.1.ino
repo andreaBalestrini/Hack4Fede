@@ -40,6 +40,7 @@ int timePin = A7; //se non si utilizza il selettore per il modo, collegare a GND
 
 /*Inizializzazone delle librerie*/
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address, Arduino pin A4->SDA  A5->SCL
+SoftwareSerial BTserial(2, 3); // RX | TX // Connect the HC-06 TX to the Arduino RX on pin 2. Connect the HC-06 RX to the Arduino TX on pin 3 through a voltage divider
 
 /*Prototipi funzioni*/
 void saluto(); /*Funzione di avvio, saluta l'utente e fornisce istruzioni circa la modalità impiegata tramite la chiamata a timeTrigger*/
@@ -50,6 +51,9 @@ void clearCharacter(); /*Pulisce la stringa usata per memorizzare la sequenza di
 void clearlcdline(int line); /*Cancella la linea di schermo passata come parametro*/
 void clearLCD(); /*Cancella lo schermo e resetta i contatori di righe e colonne*/
 void timeTrigger(); /*Regola la velocità (tempo minimo di attesa tra la pressione dei tasti) tramite input da trimmer*/
+void clearBtString(); /*Pulisco la stringaBT da inviare*/
+void sendBtString(); /*Invio la stringaBT*/
+void endBtString(); /*Fine frase e invio stringa BT*/
 void initgame(); /*Inizializzazione modalità gioco*/
 void checkword(char g); /*Verifica che il carattere inserito corrisponda a quello richiesto dal gioco*/
 
@@ -196,9 +200,15 @@ int r; //riga della matrice dove si trova il carattere gamechar
 char gamechar;
 int life = 0;
 
+//variabili bluetooth
+char btString[30];
+int scount = 0;
+int baudRate = 9600;
+
 // --------SETUP----- //
 void setup() {
   Serial.begin(9600);
+  BTserial.begin(baudRate);
 
   lcd.begin(COLUMNLCD, ROWLCD);
   lcd.createChar(HEART, heart);
@@ -222,6 +232,9 @@ void setup() {
   saluto();
   Serial.print("SR Baudrate: ");
   Serial.println(9600);
+  Serial.print("BT Baudrate: ");
+  Serial.println(baudRate);
+  BTserial.print("Ready, Steady, GO!\r\n");
 }
 
 // --------LOOP----- //
@@ -241,7 +254,6 @@ void loop() {
     }
   }
 
-  //////////////////////////////////////////////////////////////////////////////////////
   else if (EndCharState == DOWN) {
     lastPress = millis();
     if (nextRead) {
@@ -284,18 +296,22 @@ void loop() {
         lcd.print(' ');
         clearlcdline(ROWLCD - 1);
         lcd.setCursor(0, ROWLCD - 1);
+        //////////////
+        btString[--scount] = '\000';
+        /////////////
         lcd.print("Carattere cancellato");
+        
       }
     } else if (count == 3) {
       if (!gamemode) {
         clearLCD();
+        endBtString();
         lcd.setCursor(0, ROWLCD - 1);
         lcd.print("Schermo pulito");
       } else initgame();
     } else lcd.print("Annulla");
     count = 0;
   }
-  ////////////////////////////////////////////////////////////////
   else if (SpaceState == DOWN && !gamemode) { // stampo a video lo spazio
     lastPress = millis();
     if (nextRead) {
@@ -315,6 +331,10 @@ void loop() {
         counterC = 1;
       }
       lcd.print(' ');
+      ///////////
+      btString[scount++] = ' ';
+      sendBtString();
+      ///////////////
     }
   }
   else if (GameState == DOWN) {
@@ -347,7 +367,6 @@ void loop() {
 
 
 // -----FUNZIONI----- //
-
 /*Funzione di avvio, saluta l'utente e fornisce istruzioni circa la modalità impiegata tramite la chiamata a timeTrigger*/
 void saluto() {
   lcd.setCursor(0, 0);
@@ -408,6 +427,9 @@ void printReadChar() {
         counterC = 1;
       }
       lcd.print(c);
+      ///////////
+      btString[scount++] = c;
+      ///////////////
     } else checkword(c);
   } else {
     lcd.print("Carattere non valido");
@@ -509,8 +531,34 @@ void timeTrigger() {
   lcd.clear();
 }
 
-// -----FUNZIONI MODALITA' GIOCO----- //
 
+// -----FUNZIONI BLUETOOTH----- //
+/*Pulisco la stringaBT da inviare*/
+void clearBtString(){
+  for (int i = 0; i < scount; i++) {
+    btString[i] = '\000';
+  }
+  scount = 0;
+}
+
+/*Invio la stringaBT*/
+void sendBtString(){
+  for (int i = 0; i < scount; i++) {
+    BTserial.print(btString[i]);
+    btString[i] = '\000';
+  }
+  clearBtString();
+  delay(3);
+}
+
+/*Fine frase e invio stringa BT*/
+void endBtString(){
+  sendBtString();
+  BTserial.print(".\r\n");
+}
+
+
+// -----FUNZIONI MODALITA' GIOCO----- //
 /*Inizializzazione modalità gioco*/
 void initgame() {
   r = random(R);
