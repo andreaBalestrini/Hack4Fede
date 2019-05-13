@@ -15,4 +15,3 @@ V4.1	- miglioramenti bluetooth con creazione di funzioni dedicate
 	- possibilità di scrivere su tutte le righe dello schermo (meno una)
 	- aggiunto "triplo click" per pulire tutte le righe dello schermo LCD e concludere frase su bluetooth
 	- la modalità gioco ora dice che lettera hai inserito anche se sbagli
-V4.2	- inizio implementazione modalità "pro" avanzata
